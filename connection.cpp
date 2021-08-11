@@ -49,6 +49,13 @@ void connection::do_read()
 
           if (result == request_parser::good)
           {
+            /**
+            * @brief data_
+            * @todo 拼接TCP包
+            * @author stx
+            */
+            std::string data_(buffer_.data(), bytes_transferred);
+            request_parser_.parse_param(request_, data_);
             request_handler_.handle_request(request_, reply_);
             do_write();
           }

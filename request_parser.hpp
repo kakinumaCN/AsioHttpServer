@@ -48,6 +48,8 @@ public:
     return std::make_tuple(indeterminate, begin);
   }
 
+  /// 参数解析
+  void parse_param(request& req, std::string &data_);
 private:
   /// Handle the next character of input.
   result_type consume(request& req, char input);

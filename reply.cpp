@@ -243,6 +243,11 @@ reply reply::stock_reply(reply::status_type status)
   reply rep;
   rep.status = status;
   rep.content = stock_replies::to_string(status);
+  /**
+   * @brief 异常响应在返回体追加标识，便于调试时查看在哪一层返回404
+   * @author stx
+   */
+  rep.content += "by AsioHttpServer";
   rep.headers.resize(2);
   rep.headers[0].name = "Content-Length";
   rep.headers[0].value = std::to_string(rep.content.size());

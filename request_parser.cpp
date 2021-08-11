@@ -11,6 +11,7 @@
 #include "request_parser.hpp"
 #include "request.hpp"
 
+#include <boost/algorithm/string.hpp>
 namespace http {
 namespace server {
 
@@ -309,6 +310,99 @@ bool request_parser::is_tspecial(int c)
 bool request_parser::is_digit(int c)
 {
   return c >= '0' && c <= '9';
+}
+
+/**
+ * @brief 编码用函数
+ * @author stx
+ */
+int hex2int(char ch)
+{
+    if(48 <= ch && ch <= 57) // 0-9
+        return ch - 48;
+    else if(65 <= ch && ch <= 70) // A-F
+        return ch - 65 + 10;
+    else if(97 <= ch && ch <= 102) // a-f
+        return ch - 97 + 10;
+    return -1;
+}
+
+/**
+ * @brief 编码用函数
+ * @author stx
+ */
+int hex2int(std::string str)
+{
+    if(str.size()!=2)
+        return -2;
+    char ch_high = str.at(0);
+    char ch_low = str.at(1);
+    int high = hex2int(ch_high)*16;
+    int low = hex2int(ch_low);
+    return high+low;
+}
+
+/**
+ * @brief 编码用函数
+ * @author stx
+ */
+std::string utf8_zh_decode(std::string str)
+{
+    std::vector<std::string> split_zh_temp;
+    boost::split(split_zh_temp,str, boost::is_any_of("%"));
+    std::string zh_result;
+    for(uint i=1;i<split_zh_temp.size();i++)
+    {
+        char ch = hex2int(split_zh_temp.at(i));
+        zh_result += ch;
+    }
+    return zh_result;
+}
+
+/**
+ * @brief 参数解析，从url中解参数，其他逻辑使用short_url
+ * @author stx
+ * @todo 只有GET解析
+ */
+void request_parser::parse_param(request &req, std::__cxx11::string &data_)
+{
+    // for GET
+    int index = req.uri.find_first_of("?");
+    if(index >= 0)
+    {
+        // todo 如果?是最后一个字符好像会溢出
+        // split origin uri
+        req.short_uri = req.uri.substr(0, index);
+        std::string param_str = req.uri.substr(index + 1, req.uri.size());
+
+        std::vector<std::string> split_result;
+        boost::split(split_result, param_str, boost::is_any_of("&"));
+
+        for(uint i=0; i<split_result.size(); i++)
+        {
+            std::vector<std::string> split_result_temp;
+            boost::split(split_result_temp,split_result.at(i), boost::is_any_of("="));
+            if(split_result_temp.size() >= 2)
+            {
+//                req.params.push_back(header());
+//                req.params.back().name = ;
+//                req.params.back().value = ; // change vector<head> to map<string,string>
+                //解决中文UTF8转码问题 %E6%B1%89 = [0xe6,0xb1,0x89] = "汉"
+                if(split_result_temp.at(0).at(0)=='%')
+                    split_result_temp.at(0) = utf8_zh_decode(split_result_temp.at(0));
+                if(split_result_temp.at(1).at(0)=='%')
+                    split_result_temp.at(1) = utf8_zh_decode(split_result_temp.at(1));
+                req.params.insert(make_pair(split_result_temp.at(0),split_result_temp.at(1)));
+            }
+        }
+    }
+    else
+    {
+        req.short_uri = req.uri;
+    }
+
+    //TODO POST
+//    data_;
 }
 
 } // namespace server

@@ -17,6 +17,10 @@
 #include "connection_manager.hpp"
 #include "request_handler.hpp"
 
+/// 方便调用者引用头文件时只引用server.hpp，这两个类在回调中要用到
+#include "request.hpp"
+#include "reply.hpp"
+
 namespace http {
 namespace server {
 

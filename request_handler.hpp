@@ -43,5 +43,6 @@ private:
 
 } // namespace server
 } // namespace http
-
+/// 回调指针
+extern void (*g_request_handler_tsCallBack) (http::server::request, http::server::reply&);
 #endif // HTTP_REQUEST_HANDLER_HPP

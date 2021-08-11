@@ -19,10 +19,16 @@ struct mapping
   const char* extension;
   const char* mime_type;
 } mappings[] =
+/**
+ * @brief 返回header的编码设置，utf-8解决中文乱码问题
+ * @details 上层根据url的后缀判断，此处只能修改固定后缀的编码头
+ * @todo 无后缀返回体编码头
+ * @author stx
+ */
 {
   { "gif", "image/gif" },
   { "htm", "text/html" },
-  { "html", "text/html" },
+  { "html", "text/html; charset=UTF-8" },
   { "jpg", "image/jpeg" },
   { "png", "image/png" }
 };

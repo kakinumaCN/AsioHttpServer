@@ -13,6 +13,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 #include "header.hpp"
 
 namespace http {
@@ -26,6 +27,13 @@ struct request
   int http_version_major;
   int http_version_minor;
   std::vector<header> headers;
+
+  /**
+   * @brief 添加传递参数
+   * @author stx
+   */
+  std::string short_uri; // GET中去掉参数后的uri
+  std::map<std::string,std::string> params; // 参数列表，string-string的map
 };
 
 } // namespace server

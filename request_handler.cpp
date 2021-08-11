@@ -16,6 +16,13 @@
 #include "reply.hpp"
 #include "request.hpp"
 
+/**
+ * @brief 对外暴露的响应回调
+ * @author stx
+ */
+void base_tsCallBack(http::server::request, http::server::reply&) {return;}
+void (*g_request_handler_tsCallBack) (http::server::request, http::server::reply&) = base_tsCallBack;
+
 namespace http {
 namespace server {
 
@@ -28,7 +35,11 @@ void request_handler::handle_request(const request& req, reply& rep)
 {
   // Decode url to path.
   std::string request_path;
-  if (!url_decode(req.uri, request_path))
+  /**
+   * @brief 使用short url保证在处理回调时上层调用者可以根据path来判断接口类别
+   * @author stx
+   */
+  if (!url_decode(req.short_uri, request_path)) // 在传参数时使用short_uri而不是uri
   {
     rep = reply::stock_reply(reply::bad_request);
     return;
@@ -60,22 +71,42 @@ void request_handler::handle_request(const request& req, reply& rep)
   // Open the file to send back.
   std::string full_path = doc_root_ + request_path;
   std::ifstream is(full_path.c_str(), std::ios::in | std::ios::binary);
+  /**
+   * @brief 404的逻辑修改
+   * @details 由于asio的example默认从http doc path找返回体，而服务提供者不应每次都需要创建对应的文件并提供固定的返回值
+   *          所以默认产生的404视为一种特殊情况，最后检验是否存在文件并且在404产生后【不进行return】，并紧接着触发回调
+   *          如果上层调用者可以正确处理这个请求，由调用者自己来覆写响应的状态码并赋返回体
+   *          如调用者不做任何判断与处理,无任何影响,正常返回404，回调只是提供一个重写404为正常返回的机会
+   * @author stx
+   */
   if (!is)
   {
     rep = reply::stock_reply(reply::not_found);
-    return;
+    // return;
+  }
+  else
+  {
+      // 如不是404，响应文件存在，则检验完毕，返回200
+      rep.status = reply::ok;
   }
 
-  // Fill out the reply to be sent to the client.
-  rep.status = reply::ok;
-  char buf[512];
-  while (is.read(buf, sizeof(buf)).gcount() > 0)
-    rep.content.append(buf, is.gcount());
-  rep.headers.resize(2);
-  rep.headers[0].name = "Content-Length";
-  rep.headers[0].value = std::to_string(rep.content.size());
-  rep.headers[1].name = "Content-Type";
-  rep.headers[1].value = mime_types::extension_to_type(extension);
+  // 触发回调
+  g_request_handler_tsCallBack(req,rep);
+
+  // Fill out the reply to be sent to the  client.
+  // 如无doc的404被调用者手动置为200,返回体也应由调用者传递,否则返回默认的未被覆写的404内容
+  if(rep.status == reply::ok)
+  {
+      char buf[512];
+      while (is.read(buf, sizeof(buf)).gcount() > 0)
+        rep.content.append(buf, is.gcount());
+      rep.headers.resize(2);
+      rep.headers[0].name = "Content-Length";
+      rep.headers[0].value = std::to_string(rep.content.size());
+      rep.headers[1].name = "Content-Type";
+      rep.headers[1].value = mime_types::extension_to_type(extension);
+      //extension 截取uri的.后面部分,为/log.html在mime_types里添加charset
+  }
 }
 
 bool request_handler::url_decode(const std::string& in, std::string& out)
