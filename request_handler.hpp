@@ -32,6 +32,9 @@ public:
   /// Handle a request and produce a reply.
   void handle_request(const request& req, reply& rep);
 
+  /// 回调指针
+  void (*pfunc_callback) (http::server::request, http::server::reply&);
+
 private:
   /// The directory containing the files to be served.
   std::string doc_root_;
@@ -43,6 +46,4 @@ private:
 
 } // namespace server
 } // namespace http
-/// 回调指针
-extern void (*g_request_handler_tsCallBack) (http::server::request, http::server::reply&);
 #endif // HTTP_REQUEST_HANDLER_HPP

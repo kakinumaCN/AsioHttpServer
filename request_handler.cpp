@@ -21,7 +21,6 @@
  * @author stx
  */
 void base_tsCallBack(http::server::request, http::server::reply&) {return;}
-void (*g_request_handler_tsCallBack) (http::server::request, http::server::reply&) = base_tsCallBack;
 
 namespace http {
 namespace server {
@@ -29,6 +28,7 @@ namespace server {
 request_handler::request_handler(const std::string& doc_root)
   : doc_root_(doc_root)
 {
+    pfunc_callback = base_tsCallBack;
 }
 
 void request_handler::handle_request(const request& req, reply& rep)
@@ -91,13 +91,14 @@ void request_handler::handle_request(const request& req, reply& rep)
   }
 
   // 触发回调
-  g_request_handler_tsCallBack(req,rep);
+  pfunc_callback(req,rep);
 
   // Fill out the reply to be sent to the  client.
   // 如无doc的404被调用者手动置为200,返回体也应由调用者传递,否则返回默认的未被覆写的404内容
   if(rep.status == reply::ok)
   {
       char buf[512];
+      // 有文件返回体时才会追加内容，注意content是append的，不应在响应_rep中重复添加返回内容，防止内容混淆 is.read()
       while (is.read(buf, sizeof(buf)).gcount() > 0)
         rep.content.append(buf, is.gcount());
       rep.headers.resize(2);

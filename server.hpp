@@ -18,14 +18,12 @@
 #include "request_handler.hpp"
 
 /// 方便调用者引用头文件时只引用server.hpp，这两个类在回调中要用到
-#include "request.hpp"
-#include "reply.hpp"
-
+#include "inc/asio_http_server.h"
 namespace http {
 namespace server {
 
 /// The top-level class of the HTTP server.
-class server
+class server: public asio_http_server
 {
 public:
   server(const server&) = delete;
@@ -38,6 +36,11 @@ public:
 
   /// Run the server's io_context loop.
   void run();
+
+  void set_callback(_HTTP_SERVER_CALLBACK _pfunc_callback)
+  {
+      request_handler_.pfunc_callback = _pfunc_callback;
+  }
 
 private:
   /// Perform an asynchronous accept operation.
@@ -64,5 +67,15 @@ private:
 
 } // namespace server
 } // namespace http
+
+asio_http_server *create_asio_http_server(const std::string& address,
+                                          const std::string& port,
+                                          const std::string& doc_root)
+{
+    http::server::server* _pserver;
+    _pserver = new http::server::server(address, port, doc_root);
+    return _pserver;
+}
+
 
 #endif // HTTP_SERVER_HPP
