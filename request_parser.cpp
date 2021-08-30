@@ -345,6 +345,11 @@ int hex2int(std::string str)
 /**
  * @brief 编码用函数
  * @author stx
+ * @brief bugfix 参数="汉":"字"
+ *      para : str="汉":"字"
+ *                ="%22%E6%B1%89%22:%22%E5%AD%97%22"
+ *      split: %22:%22 -> [%22:]
+ *      ':' 被分在%22组中,%22:四个字符被视为一个整体
  */
 std::string utf8_zh_decode(std::string str)
 {
@@ -353,8 +358,14 @@ std::string utf8_zh_decode(std::string str)
     std::string zh_result;
     for(uint i=1;i<split_zh_temp.size();i++)
     {
-        char ch = hex2int(split_zh_temp.at(i));
-        zh_result += ch;
+        if(split_zh_temp.at(i).size()<2)
+        {
+            zh_result += '%'; // 补上被分割的%
+            zh_result += split_zh_temp.at(i).substr(0,-1); // 短于两字符不处理
+            continue;
+        }
+        zh_result += hex2int(split_zh_temp.at(i).substr(0,2)); // 前两字符转ASCII
+        zh_result += split_zh_temp.at(i).substr(2,-1); // 两字符以后的字符原样添加
     }
     return zh_result;
 }
