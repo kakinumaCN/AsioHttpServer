@@ -13,6 +13,7 @@
 #include <vector>
 #include "connection_manager.hpp"
 #include "request_handler.hpp"
+#include <boost/algorithm/string.hpp>
 
 namespace http {
 namespace server {
@@ -55,6 +56,26 @@ void connection::do_read()
             * @author stx
             */
             std::string data_(buffer_.data(), bytes_transferred);
+            // 获取header长度
+            uint header_length = data_.find("\r\n\r\n");
+            // 获取content长度
+            uint content_length=0;
+            for(uint i=0;i<request_.headers.size();i++)
+            {
+                if(boost::algorithm::iequals(request_.headers[i].name, "content-length"))
+                {
+                    content_length = atoi(request_.headers[i].value.c_str());
+                    break;
+                }
+            }
+            /// 在boost中，request_parse结果分为good bad indeterminate
+            /// 当为indeterminate使依旧会do_read()
+            /// 需要确定是否需要手动合并tcp包
+            if(data_.size() < header_length + content_length + 4) // 4 = len("\r\n\r\n")
+            {
+                std::string _log = "tcp包实际长度与参数不符";
+                _log += "TODO 手动合并";
+            }
             request_parser_.parse_param(request_, data_);
             request_handler_.handle_request(request_, reply_);
             do_write();
