@@ -14,6 +14,8 @@
 #include <array>
 #include <memory>
 #include <asio.hpp>
+#include <vector>
+#include <string>
 #include "reply.hpp"
 #include "request.hpp"
 #include "request_handler.hpp"
@@ -69,6 +71,16 @@ private:
 
   /// The reply to be sent back to the client.
   reply reply_;
+
+  /// liyang add some variables for post method
+  /// 第一次的请求
+  request request_first;
+  /// 第一次的请求结果
+  request_parser::result_type result_first;
+  /// 数据接收中标识
+  bool receiving_=false;
+  /// post 方法中，内容的长度
+  unsigned int content_length_=0;
 };
 
 typedef std::shared_ptr<connection> connection_ptr;

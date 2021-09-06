@@ -34,6 +34,7 @@ struct request
    */
   std::string short_uri; // GET中去掉参数后的uri
   std::map<std::string,std::string> params; // 参数列表，string-string的map
+  std::string content; // POST中body数据
 };
 
 } // namespace server
