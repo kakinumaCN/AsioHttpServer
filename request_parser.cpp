@@ -353,6 +353,7 @@ int hex2int(std::string str)
  */
 std::string utf8_zh_decode(std::string str)
 {
+    if(str.empty()) return "";
     std::vector<std::string> split_zh_temp;
     boost::split(split_zh_temp,str, boost::is_any_of("%"));
     std::string zh_result;
@@ -375,7 +376,7 @@ std::string utf8_zh_decode(std::string str)
  * @author stx
  * @todo 只有GET解析
  */
-void request_parser::parse_param(request &req, std::__cxx11::string &data_)
+void request_parser::parse_param(request &req)
 {
     // for GET
     int index = req.uri.find_first_of("?");
@@ -399,9 +400,9 @@ void request_parser::parse_param(request &req, std::__cxx11::string &data_)
 //                req.params.back().name = ;
 //                req.params.back().value = ; // change vector<head> to map<string,string>
                 //解决中文UTF8转码问题 %E6%B1%89 = [0xe6,0xb1,0x89] = "汉"
-                if(split_result_temp.at(0).at(0)=='%')
+                if(!split_result_temp.at(0).empty() && split_result_temp.at(0).at(0)=='%')
                     split_result_temp.at(0) = utf8_zh_decode(split_result_temp.at(0));
-                if(split_result_temp.at(1).at(0)=='%')
+                if(!split_result_temp.at(1).empty() && split_result_temp.at(1).at(0)=='%')
                     split_result_temp.at(1) = utf8_zh_decode(split_result_temp.at(1));
                 req.params.insert(make_pair(split_result_temp.at(0),split_result_temp.at(1)));
             }
@@ -411,7 +412,7 @@ void request_parser::parse_param(request &req, std::__cxx11::string &data_)
     {
         req.short_uri = req.uri;
     }
-
+/*
     //POST
     std::string content_type;
     for(std::vector<header>::iterator _iter = req.headers.begin();_iter!=req.headers.end();_iter++)
@@ -433,9 +434,11 @@ void request_parser::parse_param(request &req, std::__cxx11::string &data_)
             std::string content = "";
             for(;it_content!=data_.end();it_content++)
                 content.push_back(*it_content);
-            req.params.insert(make_pair("post-data",content));
+            //req.params.insert(make_pair("post-data",content));
+            req.content = content;
         }
     }
+    */
 /**
     {
         const char* find_str = "\r\n\r\n";

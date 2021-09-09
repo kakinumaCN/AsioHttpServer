@@ -11,6 +11,7 @@
 #include "connection.hpp"
 #include <utility>
 #include <vector>
+#include <regex>
 #include "connection_manager.hpp"
 #include "request_handler.hpp"
 #include <boost/algorithm/string.hpp>
@@ -42,58 +43,97 @@ void connection::do_read()
   socket_.async_read_some(asio::buffer(buffer_),
       [this, self](std::error_code ec, std::size_t bytes_transferred)
       {
+
         if (!ec)
         {
           request_parser::result_type result;
           std::tie(result, std::ignore) = request_parser_.parse(
               request_, buffer_.data(), buffer_.data() + bytes_transferred);
 
-          if (result == request_parser::good)
+          /**
+           * @brief 数据接收处理说明
+           * @author liyang
+           * @details 如果是get请求，原代码没有问题;如果是post请求，这个就只能接收第一次请求需要改造
+           *          因为get请求是一次tcp 而post请求可能需要多次tcp.
+           *          当body数据超长时调用doread方法读取数据.
+           */
+          std::string http_data = buffer_.data();
+          // 如果buffer_数据填满，赋值后http_data尾部存在乱码，需要将多余数据摘除
+          // buffer_ 的max_size() 和 size()获取长度一致
+          if(http_data.size() > buffer_.max_size()) http_data.resize(buffer_.max_size());
+          // 获取完数据一定要清空
+          buffer_ ={'\0'};
+          if(!receiving_)
           {
-            /**
-            * @brief data_
-            * @todo 拼接TCP包
-            * @author stx
-            */
-            std::string data_(buffer_.data(), bytes_transferred);
-            // 获取header长度
-            uint header_length = data_.find("\r\n\r\n");
-            // 获取content长度
-            uint content_length=0;
-            for(uint i=0;i<request_.headers.size();i++)
-            {
-                if(boost::algorithm::iequals(request_.headers[i].name, "content-length"))
-                {
-                    content_length = atoi(request_.headers[i].value.c_str());
-                    break;
-                }
-            }
-            /// 在boost中，request_parse结果分为good bad indeterminate
-            /// 当为indeterminate使依旧会do_read()
-            /// 需要确定是否需要手动合并tcp包
-            /// @todo data_ 最大值为8192，推测为socket缓冲区最大值
-            if(data_.size() < header_length + content_length + 4) // 4 = len("\r\n\r\n")
-            {
-                std::string _log = "tcp包实际长度与参数不符";
-                _log += "TODO 手动合并";
-            }
-            request_parser_.parse_param(request_, data_);
-            request_handler_.handle_request(request_, reply_);
-            do_write();
-          }
-          else if (result == request_parser::bad)
-          {
-            reply_ = reply::stock_reply(reply::bad_request);
-            do_write();
+              receiving_ =true;//开始接收数据
+              request_first = request_;
+              result_first = result;
+              if("POST" == request_first.method)
+              {
+                  // 获取header长度(加上结束符)
+                  size_t header_length = http_data.find("\r\n\r\n") +4;
+                  // 获取content长度
+                  content_length_ = 0;
+                  for(auto head :request_first.headers)
+                  {
+                      if(0 == strcmp(head.name.data(),"Content-Length"))
+                      {
+                          content_length_ = atoi(head.value.data());
+                          break;
+                      }
+                  }
+                  // 如果存在内容则拷贝
+                  if(http_data.size() > header_length)
+                  {
+                      request_first.content =http_data.substr(header_length,http_data.size()-header_length);
+                  }
+                  // 内容未拷贝完则再次读取
+                  if(content_length_ > request_first.content.size())
+                  {
+                      do_read();
+                      return;
+                  }
+              }
           }
           else
           {
-            do_read();
+              if("POST" == request_first.method
+                      && content_length_ > request_first.content.size())
+              {
+                  // 拷贝内容
+                  request_first.content.append(http_data.data(),http_data.size());
+                  if(http_data.size() == buffer_.max_size()
+                          && content_length_ > request_first.content.size())
+                  {
+                      do_read();
+                      return;
+                  }
+              }
+          }
+
+          if (result_first == request_parser::good)
+          {
+              receiving_ = false;
+              request_parser_.parse_param(request_first);
+              request_handler_.handle_request(request_first, reply_);
+              do_write();
+          }
+          else if (result_first == request_parser::bad)
+          {
+              receiving_ = false;
+              reply_ = reply::stock_reply(reply::bad_request);
+              do_write();
+          }
+          else
+          {
+              receiving_ = false;
+              do_read();
           }
         }
         else if (ec != asio::error::operation_aborted)
         {
-          connection_manager_.stop(shared_from_this());
+            receiving_ = false;
+            connection_manager_.stop(shared_from_this());
         }
       });
 }

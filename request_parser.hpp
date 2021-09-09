@@ -49,7 +49,7 @@ public:
   }
 
   /// 参数解析
-  void parse_param(request& req, std::string &data_);
+  void parse_param(request& req);
 private:
   /// Handle the next character of input.
   result_type consume(request& req, char input);

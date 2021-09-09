@@ -97,15 +97,23 @@ void request_handler::handle_request(const request& req, reply& rep)
   // 如无doc的404被调用者手动置为200,返回体也应由调用者传递,否则返回默认的未被覆写的404内容
   if(rep.status == reply::ok)
   {
-      char buf[512];
-      // 有文件返回体时才会追加内容，注意content是append的，不应在响应_rep中重复添加返回内容，防止内容混淆 is.read()
-      while (is.read(buf, sizeof(buf)).gcount() > 0)
-        rep.content.append(buf, is.gcount());
+      if(rep.content.empty())
+      {
+          char buf[512];
+          // 有文件返回体时才会追加内容，注意content是append的，不应在响应_rep中重复添加返回内容，防止内容混淆 is.read()
+          while (is.read(buf, sizeof(buf)).gcount() > 0)
+            rep.content.append(buf, is.gcount());
+      }
+
+      rep.headers.push_back(header{"Content-Length",std::to_string(rep.content.size())});
+      rep.headers.push_back(header{"Content-Type",mime_types::extension_to_type(extension)});
+/*
       rep.headers.resize(2);
       rep.headers[0].name = "Content-Length";
       rep.headers[0].value = std::to_string(rep.content.size());
       rep.headers[1].name = "Content-Type";
       rep.headers[1].value = mime_types::extension_to_type(extension);
+      */
       //extension 截取uri的.后面部分,为/log.html在mime_types里添加charset
   }
 }
