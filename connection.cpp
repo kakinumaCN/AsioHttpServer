@@ -71,6 +71,7 @@ void connection::do_read()
             /// 在boost中，request_parse结果分为good bad indeterminate
             /// 当为indeterminate使依旧会do_read()
             /// 需要确定是否需要手动合并tcp包
+            /// @todo data_ 最大值为8192，推测为socket缓冲区最大值
             if(data_.size() < header_length + content_length + 4) // 4 = len("\r\n\r\n")
             {
                 std::string _log = "tcp包实际长度与参数不符";
