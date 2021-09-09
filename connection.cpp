@@ -43,7 +43,6 @@ void connection::do_read()
   socket_.async_read_some(asio::buffer(buffer_),
       [this, self](std::error_code ec, std::size_t bytes_transferred)
       {
-
         if (!ec)
         {
           request_parser::result_type result;

@@ -107,13 +107,7 @@ void request_handler::handle_request(const request& req, reply& rep)
 
       rep.headers.push_back(header{"Content-Length",std::to_string(rep.content.size())});
       rep.headers.push_back(header{"Content-Type",mime_types::extension_to_type(extension)});
-/*
-      rep.headers.resize(2);
-      rep.headers[0].name = "Content-Length";
-      rep.headers[0].value = std::to_string(rep.content.size());
-      rep.headers[1].name = "Content-Type";
-      rep.headers[1].value = mime_types::extension_to_type(extension);
-      */
+
       //extension 截取uri的.后面部分,为/log.html在mime_types里添加charset
   }
 }
