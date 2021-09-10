@@ -345,7 +345,7 @@ int hex2int(std::string str)
 /**
  * @brief 编码用函数
  * @author stx
- * @bugsolved 参数="汉":"字"
+ * @brief bugsolved 参数="汉":"字"
  *      para : str="汉":"字"
  *                ="%22%E6%B1%89%22:%22%E5%AD%97%22"
  *      split: %22:%22 -> [%22:]

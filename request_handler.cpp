@@ -15,6 +15,7 @@
 #include "mime_types.hpp"
 #include "reply.hpp"
 #include "request.hpp"
+#include <boost/algorithm/string.hpp>
 
 /**
  * @brief 对外暴露的响应回调
@@ -105,8 +106,31 @@ void request_handler::handle_request(const request& req, reply& rep)
             rep.content.append(buf, is.gcount());
       }
 
-      rep.headers.push_back(header{"Content-Length",std::to_string(rep.content.size())});
-      rep.headers.push_back(header{"Content-Type",mime_types::extension_to_type(extension)});
+      /// @brief bugsolved
+      /// @brief 检查header，在未填content-length和content-type时添加，已填时更新
+      ///        如直接添加，response在!is被置404后又被回调置200时会重复添加
+      ///        如直接resize(2)，则上层应用填写的Date等http头会被删除
+      /// @todo  应用是否有必要/有权限修改http headers
+      int is_content_length = -1;
+      int is_content_type = -1;
+
+      for(uint i=0;i<rep.headers.size();i++)
+      {
+          if(boost::algorithm::iequals(rep.headers[i].name, "content-length"))
+              is_content_length = i;
+          if(boost::algorithm::iequals(rep.headers[i].name, "Content-Type"))
+              is_content_type = i;
+      }
+
+      if(is_content_length >= 0)
+          rep.headers[is_content_length].value = rep.content.size();
+      else
+          rep.headers.push_back(header{"Content-Length",std::to_string(rep.content.size())});
+
+      if(is_content_type >= 0)
+          rep.headers[is_content_type].value = mime_types::extension_to_type(extension);
+      else
+          rep.headers.push_back(header{"Content-Type",mime_types::extension_to_type(extension)});
 
       //extension 截取uri的.后面部分,为/log.html在mime_types里添加charset
   }

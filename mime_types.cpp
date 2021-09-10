@@ -42,8 +42,8 @@ std::string extension_to_type(const std::string& extension)
       return m.mime_type;
     }
   }
-
-  return "text/plain";
+  ///@brief 为plain设置utf-8编码
+  return "text/plain; charset=UTF-8";
 }
 
 } // namespace mime_types

@@ -75,7 +75,7 @@ void connection::do_read()
                   content_length_ = 0;
                   for(auto head :request_first.headers)
                   {
-                      if(0 == strcmp(head.name.data(),"Content-Length"))
+                      if(boost::algorithm::iequals(head.name,"Content-Length"))
                       {
                           content_length_ = atoi(head.value.data());
                           break;
