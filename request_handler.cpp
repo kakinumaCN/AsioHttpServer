@@ -122,8 +122,9 @@ void request_handler::handle_request(const request& req, reply& rep)
               is_content_type = i;
       }
 
+      /// @brief rep.value是stdstring,直接赋size值会导致赋值为char的对应字符
       if(is_content_length >= 0)
-          rep.headers[is_content_length].value = rep.content.size();
+          rep.headers[is_content_length].value = std::to_string(rep.content.size());
       else
           rep.headers.push_back(header{"Content-Length",std::to_string(rep.content.size())});
 
